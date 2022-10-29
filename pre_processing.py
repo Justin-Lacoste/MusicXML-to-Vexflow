@@ -13,6 +13,7 @@ notes = ["empty", "la_0, la#_0", "si_0",
 
 
 #CREATE LIST OF BUCKETS OF NOTES OF MUSICXML SHEET MUSIC
+
 from xml.dom import minidom
 from xml.dom.minidom import parse, parseString
 import xml.etree.ElementTree as ET
@@ -48,7 +49,7 @@ circle_of_fifth = [{},
 modifiers = []
 note_id = 0
 
-dom = minidom.parse(xml_file)
+dom = minidom.parse('Liebestraum.xml')
 measures = dom.getElementsByTagName('measure')
 print(f"There are {len(measures)} items:")
 
@@ -77,6 +78,8 @@ for index, measure in enumerate(measures):
 
         duration = 0
 
+        #arpeggios = {} #key: 'default-x', value: {key: 'default-y', value: timestamp}
+
         #check for key
         key = measure.getElementsByTagName('fifths')
         if len(key) > 0:
@@ -85,6 +88,8 @@ for index, measure in enumerate(measures):
           modifiers = circle_of_fifth[int(key)]
 
         root = ET.fromstring(measure.toxml())
+
+        chord_number = 0
 
         for child_of_measure in root:
             if child_of_measure.tag == "note":
@@ -104,6 +109,7 @@ for index, measure in enumerate(measures):
                     stem = None
                     beam = None
                     is_played = True
+                    chord = -1
 
                     accidental = None
                     if 'accidental' in note_xml_string:
@@ -131,6 +137,11 @@ for index, measure in enumerate(measures):
                         beam_status = note.getElementsByTagName('beam')[0].childNodes[0].data
                         beam_number = note.getElementsByTagName('beam')[0].attributes['number'].value
                         beam = {"status": beam_status, "number": beam_number}
+                    if len(note.getElementsByTagName('chord')) > 0:
+                      if measure_musicxml_notes[-1]["chord"] == -1:
+                        chord += 1
+                        measure_musicxml_notes[-1]["chord"] = chord
+                      chord = chord_number
 
 
                     note_name = ""
@@ -160,13 +171,16 @@ for index, measure in enumerate(measures):
 
                     index_in_notes = notes.index(note_name)
 
-                    measure_musicxml_notes.append({"note": note_name, "measure": measure_number, "timestamp": duration,
+                    tmp_duration = duration if chord == -1 else measure_musicxml_notes[-1]["timestamp"]
+
+                    measure_musicxml_notes.append({"note": note_name, "measure": measure_number, "timestamp": tmp_duration,
                                                    "index_in_notes": index_in_notes, "voice": voice,
                                                    "accidental": accidental, "note_type": note_type,
                                                    "dot": dot, "staff": staff, "slur": slur, "tied": tied, "step": step,
                                                    "octave": octave, "note_duration": note_duration, "stem": stem,
-                                                   "beam": beam, "is_played": is_played, "note_id": note_id})
-                    duration += int(note_duration)
+                                                   "beam": beam, "is_played": is_played, "note_id": note_id,
+                                                   "chord": chord})
+                    duration += int(note_duration) if chord == -1 else 0
                     note_id += 1
                 
                 elif 'rest' in note_xml_string:
@@ -184,7 +198,7 @@ for index, measure in enumerate(measures):
                     else:
                         rest_type = rest.getElementsByTagName('type')[0].childNodes[0].data
                     if len(rest.getElementsByTagName('display-step')) > 0 and len(rest.getElementsByTagName('display-octave')) > 0:
-                        stem = rest.getElementsByTagName('display-step')[0].childNodes[0].data
+                        step = rest.getElementsByTagName('display-step')[0].childNodes[0].data
                         octave = rest.getElementsByTagName('display-octave')[0].childNodes[0].data
                     else:
                         if staff == "2":
@@ -199,7 +213,7 @@ for index, measure in enumerate(measures):
                                                    "accidental": None, "note_type": rest_type,
                                                    "dot": dot, "staff": staff, "slur": None, "tied": None, "step": step,
                                                    "octave": octave, "note_duration": rest_duration, "stem": None,
-                                                   "beam": None, "is_played": False, "note_id": note_id})
+                                                   "beam": None, "is_played": False, "note_id": note_id, "chord": -1})
 
                     duration += int(rest_duration)
                     note_id += 1
@@ -213,6 +227,7 @@ for index, measure in enumerate(measures):
                 #print(child_of_measure.tag, ": ", measure_number, " -- ", movement_duration, " - ", movement.toxml())
 
         musicxml_measures.append(measure_musicxml_notes)
+
 
 
 from matplotlib.cbook import index_of
