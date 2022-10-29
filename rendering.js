@@ -2,6 +2,45 @@
 
 async function create_vexflow(canvas_id, start_measure, end_measure, json_data_filename) {
 
+
+	const user_tempo = "tempo"
+	const pro_tempo = "pro_tempo"
+	const user_intensity = "graph_played_velocity"//"intensity"
+	const pro_intensity = "graph_pro_velocity"
+	function merge_song_array_to_vexflow_data(song_array, vexflow_data, mode, start_measure, end_measure, recorded_start_measure, recorded_end_measure) {
+		var color_type = ""
+		if (mode == "tempo_graph")
+			color_type = "tempo_color"
+		if (mode == "intensity_graph")
+			color_type = "intensity_color"
+		for (var i=recorded_start_measure;i<=recorded_end_measure;i++) {
+			var measure = vexflow_data[i]
+			for (var voice_number of Object.keys(measure)) {
+				for (var j=0;j<measure[voice_number].length;j++) {
+					if ('song_array_index' in measure[voice_number][j] && measure[voice_number][j]["song_array_index"] != -1) {
+						if (mode == "tempo_graph" || mode == "intensity_graph") {
+							measure[voice_number][j][mode] = song_array[measure[voice_number][j]["song_array_index"]][color_type]
+						}
+						if (mode == "feedback") {
+							measure[voice_number][j]["highlight"] = song_array[measure[voice_number][j]["song_array_index"]]["highlight"]
+						}
+						measure[voice_number][j]["user_tempo"] = song_array[measure[voice_number][j]["song_array_index"]][user_tempo]
+						measure[voice_number][j]["pro_tempo"] = song_array[measure[voice_number][j]["song_array_index"]][pro_tempo]
+						measure[voice_number][j]["user_intensity"] = song_array[measure[voice_number][j]["song_array_index"]][user_intensity]
+						measure[voice_number][j]["pro_intensity"] = song_array[measure[voice_number][j]["song_array_index"]][pro_intensity]
+					}
+				}
+			}
+		}
+	}
+
+	function mode_to_color(mode) {
+		const mode_to_color_map = {"-2": '#0526FF', "-1": "#031380", "0": "#000000", "1": "#800303", "2": "#FF0505"}
+		return mode_to_color_map[mode]
+	}
+	no_color_note = '#D8D8D8'
+
+
 	//for testing
 	const total_with = 1112
 	const height_of_stave = 41
